@@ -65,7 +65,7 @@
           INSECURE_COOKIE: 'True'
           LIFETIME: '2592000'
           AUTH_HOST: 'oauth.{{domain}}'
-          WHITELIST: '{{whitelisted.stdout}}'
+          DOMAIN: 'iceconsulting.com'
     # MAIN DEPLOYMENT #############################################################
 
     - name: 'Deploying Container - oauth'
