@@ -22,16 +22,16 @@ variable() {
 }
 
 question1() {
-  touch /pg/var/auth.bypass
+  touch /opt/var/auth.bypass
 
-  a7=$(cat /pg/var/auth.bypass)
+  a7=$(cat /opt/var/auth.bypass)
   if [[ "$a7" != "good" ]]; then shieldcheck; fi
-  echo good >/pg/var/auth.bypass
+  echo good >/opt/var/auth.bypass
 
-  touch /pg/var/pgshield.emails
-  mkdir -p /pg/var/auth/
+  touch /opt/var/pgshield.emails
+  mkdir -p /opt/var/auth/
 
-  domain=$(cat /pg/var/server.domain)
+  domain=$(cat /opt/var/server.domain)
 
   tee <<-EOF
 
@@ -70,8 +70,8 @@ phase1() {
     ;;
   4)
     # Sanity Check to Ensure At Least 1 Authorized User Exists
-    touch /pg/var/pgshield.emails
-    efg=$(cat "/pg/var/pgshield.emails")
+    touch /opt/var/pgshield.emails
+    efg=$(cat "/opt/var/pgshield.emails")
     if [[ "$efg" == "" ]]; then
       echo
       echo "SANITY CHECK: No Authorized Users have been Added! Exiting!"
@@ -80,7 +80,7 @@ phase1() {
     fi
 
     # Sanity Check to Ensure that Web ID ran domaincheck
-    file="/pg/var/auth.idset"
+    file="/opt/var/auth.idset"
     if [ ! -e "$file" ]; then
       echo
       echo "SANITY CHECK: You Must @ Least Run the Web ID Interface Once!"
@@ -89,8 +89,8 @@ phase1() {
     fi
 
     # Sanity Check to Ensure Ports are closed
-    touch /pg/var/server.ports
-    ports=$(cat "/pg/var/server.ports")
+    touch /opt/var/server.ports
+    ports=$(cat "/opt/var/server.ports")
     if [ "$ports" != "127.0.0.1:" ]; then
       echo
       echo "SANITY CHECK: Ports are open, PGShield cannot be enabled until they are closed due to security risks!"
@@ -98,19 +98,19 @@ phase1() {
       question1
     fi
 
-    touch /pg/var/pgshield.compiled
-    rm -r /pg/var/pgshield.compiled
+    touch /opt/var/pgshield.compiled
+    rm -r /opt/var/pgshield.compiled
     while read p; do
-      echo -n "$p," >>/pg/var/pgshield.compiled
-    done </pg/var/pgshield.emails
+      echo -n "$p," >>/opt/var/pgshield.compiled
+    done </opt/var/pgshield.emails
 
-    ansible-playbook /pg/pgshield/pgshield.yml
+    ansible-playbook /opt/pgshield/pgshield.yml
 
     pgstatus=$(docker ps | grep "\<thomseddon\>" | awk '{ print $2}')
-    if [[ "$pgstatus" != "" ]]; then touch /pg/var/oauth.exists
-    else rm -rf /pg/var/oauth.exists; fi
+    if [[ "$pgstatus" != "" ]]; then touch /opt/var/oauth.exists
+    else rm -rf /opt/var/oauth.exists; fi
 
-    bash /pg/pgshield/rebuild.sh
+    bash /opt/pgshield/rebuild.sh
     question1
     ;;
   z)
@@ -126,8 +126,8 @@ phase1() {
 }
 
 appexempt() {
-  bash /pg/apps/_appsgen.sh
-  ls -l /pg/var/auth | awk '{ print $9 }' >/pg/var/pgshield.ex15
+  bash /opt/apps/_appsgen.sh
+  ls -l /opt/var/auth | awk '{ print $9 }' >/opt/var/pgshield.ex15
 
   tee <<-EOF
 
@@ -159,13 +159,13 @@ phase3() {
     appexempt
     ;;
   3)
-    emptycheck=$(cat /pg/var/pgshield.ex15)
+    emptycheck=$(cat /opt/var/pgshield.ex15)
     if [[ "$emptycheck" == "" ]]; then
       echo
       read -p 'No Apps have PGShield Disabled! Exiting | Press [ENTER]'
       appexempt
     fi
-    rm -rf /pg/var/auth/*
+    rm -rf /opt/var/auth/*
     echo ""
     echo "NOTE: Does not take effect until PG Shield is redeployed!"
     read -p 'Acknowledge Info | Press [ENTER] ' typed </dev/tty
@@ -186,27 +186,27 @@ phase3() {
 }
 
 phase31() {
-  touch /pg/var/app.list
+  touch /opt/var/app.list
   while read p; do
-    sed -i -e "/$p/d" /pg/var/app.list
-  done </pg/var/pgshield.ex15
+    sed -i -e "/$p/d" /opt/var/app.list
+  done </opt/var/pgshield.ex15
 
   ### Blank Out Temp List
-  rm -rf /pg/var/program.temp && touch /pg/var/program.temp
+  rm -rf /opt/var/program.temp && touch /opt/var/program.temp
 
   ### List Out Apps In Readable Order (One's Not Installed)
   num=0
   while read p; do
-    echo -n $p >>/pg/var/program.temp
-    echo -n " " >>/pg/var/program.temp
+    echo -n $p >>/opt/var/program.temp
+    echo -n " " >>/opt/var/program.temp
     num=$((num + 1))
     if [ "$num" == 7 ]; then
       num=0
-      echo " " >>/pg/var/program.temp
+      echo " " >>/opt/var/program.temp
     fi
-  done </pg/var/app.list
+  done </opt/var/app.list
 
-  notrun=$(cat /pg/var/program.temp)
+  notrun=$(cat /opt/var/program.temp)
 
   tee <<-EOF
 
@@ -226,8 +226,8 @@ EOF
 
   if [[ "$typed" == "exit" || "$typed" == "Exit" || "$typed" == "EXIT" || "$typed" == "z" || "$typed" == "Z" ]]; then appexempt; fi
 
-  grep -w "$typed" /pg/var/program.temp >/pg/var/check55.sh
-  usercheck=$(cat /pg/var/check55.sh)
+  grep -w "$typed" /opt/var/program.temp >/opt/var/check55.sh
+  usercheck=$(cat /opt/var/check55.sh)
 
   if [[ "$usercheck" == "" ]]; then
     echo
@@ -235,7 +235,7 @@ EOF
     appexempt
   fi
 
-  touch /pg/var/auth/$typed
+  touch /opt/var/auth/$typed
   echo
   echo "NOTE: No effect until PGShield or the app is redeployed!"
   read -p '🌍 Acknowledge! | Press [ENTER] ' note </dev/tty
@@ -244,28 +244,28 @@ EOF
 
 phase21() {
 
-  emptycheck=$(cat /pg/var/pgshield.ex15)
+  emptycheck=$(cat /opt/var/pgshield.ex15)
   if [[ "$emptycheck" == "" ]]; then
     echo
     read -p 'No apps are exempt! Exiting | Press [ENTER]'
     appexempt
   fi
   ### Blank Out Temp List
-  rm -rf /pg/var/program.temp && touch /pg/var/program.temp
+  rm -rf /opt/var/program.temp && touch /opt/var/program.temp
 
   ### List Out Apps In Readable Order (One's Not Installed)
   num=0
   while read p; do
-    echo -n $p >>/pg/var/program.temp
-    echo -n " " >>/pg/var/program.temp
+    echo -n $p >>/opt/var/program.temp
+    echo -n " " >>/opt/var/program.temp
     num=$((num + 1))
     if [ "$num" == 7 ]; then
       num=0
-      echo " " >>/pg/var/program.temp
+      echo " " >>/opt/var/program.temp
     fi
-  done </pg/var/pgshield.ex15
+  done </opt/var/pgshield.ex15
 
-  notrun=$(cat /pg/var/program.temp)
+  notrun=$(cat /opt/var/program.temp)
 
   tee <<-EOF
 
@@ -285,8 +285,8 @@ EOF
 
   if [[ "$typed" == "exit" || "$typed" == "Exit" || "$typed" == "EXIT" || "$typed" == "z" || "$typed" == "Z" ]]; then appexempt; fi
 
-  grep -w "$typed" /pg/var/pgshield.ex15 >/pg/var/check55.sh
-  usercheck=$(cat /pg/var/check55.sh)
+  grep -w "$typed" /opt/var/pgshield.ex15 >/opt/var/check55.sh
+  usercheck=$(cat /opt/var/check55.sh)
 
   if [[ "$usercheck" == "" ]]; then
     echo
@@ -294,7 +294,7 @@ EOF
     appexempt
   fi
 
-  rm -rf /pg/var/auth/$typed
+  rm -rf /opt/var/auth/$typed
   echo
   echo "NOTE: No effect until PG Shield or the app is redeployed!"
   read -p '🌍 Acknoweldge! | Press [ENTER] ' note </dev/tty
@@ -317,15 +317,15 @@ EOF
 
   read -p '↘️  Web Client ID     | Press [Enter]: ' public </dev/tty
   if [ "$public" = "exit" ]; then question1; fi
-  echo "$public" >/pg/var/shield.clientid
+  echo "$public" >/opt/var/shield.clientid
 
   read -p '↘️  Web Client Secret | Press [Enter]: ' secret </dev/tty
   if [ "$secret" = "exit" ]; then question1; fi
-  echo "$secret" >/pg/var/shield.clientsecret
+  echo "$secret" >/opt/var/shield.clientsecret
 
   echo ""
   read -p '🔑 Client ID & Secret Set |  Press [ENTER] ' public </dev/tty
-  touch /pg/var/auth.idset
+  touch /opt/var/auth.idset
   question1
 }
 
@@ -363,24 +363,24 @@ phase2() {
       email
     fi
 
-    usercheck=$(cat /pg/var/pgshield.emails | grep $typed)
+    usercheck=$(cat /opt/var/pgshield.emails | grep $typed)
     if [[ "$usercheck" != "" ]]; then
       read -p 'User Already Exists! | Press [ENTER] ' note </dev/tty
       email
     fi
     read -p 'User Added | Press [ENTER] ' note </dev/tty
-    echo "$typed" >>/pg/var/pgshield.emails
+    echo "$typed" >>/opt/var/pgshield.emails
     email
     ;;
   2)
     echo
     read -p 'User Email to Remove | Press [ENTER]: ' typed </dev/tty
-    testremove=$(cat /pg/var/pgshield.emails | grep $typed)
+    testremove=$(cat /opt/var/pgshield.emails | grep $typed)
     if [[ "$testremove" == "" ]]; then
       read -p 'User does not exist | Press [ENTER] ' typed </dev/tty
       email
     fi
-    sed -i -e "/$typed/d" /pg/var/pgshield.emails
+    sed -i -e "/$typed/d" /opt/var/pgshield.emails
     echo ""
     echo "NOTE: Does not take effect until PG Shield is redeployed!"
     read -p 'Removed User | Press [ENTER] ' typed </dev/tty
@@ -391,18 +391,18 @@ phase2() {
     echo
     echo "Current Authorized E-Mail Addresses"
     echo ""
-    cat /pg/var/pgshield.emails
+    cat /opt/var/pgshield.emails
     echo
     read -p 'Finished? | Press [ENTER] ' typed </dev/tty
     email
     email
     ;;
   4)
-    test=$(cat /pg/var/pgshield.emails | grep "@")
+    test=$(cat /opt/var/pgshield.emails | grep "@")
     if [[ "$test" == "" ]]; then email; fi
     docker stop oauth
-    rm -r /pg/var/pgshield.emails
-    touch /pg/var/pgshield.emails
+    rm -r /opt/var/pgshield.emails
+    touch /opt/var/pgshield.emails
     echo
     docker stop oauth
     read -p 'All Prior Users Removed! | Press [ENTER] ' typed </dev/tty
@@ -421,13 +421,13 @@ phase2() {
 }
 
 shieldcheck() {
-  domaincheck=$(cat /pg/var/server.domain)
-  touch /pg/var/server.domain
+  domaincheck=$(cat /opt/var/server.domain)
+  touch /opt/var/server.domain
   touch /tmp/portainer.check
   rm -r /tmp/portainer.check
   cname="portainer"
-  if [[ -f "/pg/var/portainer.cname" ]]; then
-    cname=$(cat "/pg/var/portainer.cname")
+  if [[ -f "/opt/var/portainer.cname" ]]; then
+    cname=$(cat "/opt/var/portainer.cname")
   fi
 
   wget -q "https://${cname}.${domaincheck}" -O /tmp/portainer.check
