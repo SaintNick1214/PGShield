@@ -7,7 +7,7 @@
 ################################################################################
 touch /var/plexguide
 if [[ $(docker ps | grep oauth) == "" ]]; then
-  echo null >/pg/var/auth.var
+  echo null >/opt/var/plexguide/auth.var
 else
-  echo good >/pg/var/auth.var
+  echo good >/opt/var/plexguide/auth.var
 fi
